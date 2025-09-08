@@ -4,11 +4,22 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import Dict
 from pymatgen.core.composition import Composition
+from fastapi.middleware.cors import CORSMiddleware
 
 # Load trained model
 model = joblib.load("energy_model_91.pkl")
 
 app = FastAPI(title="Material Discovery API")
+
+# ✅ Enable CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # You can restrict later to ["http://localhost:3000", "https://your-frontend-domain.com"]
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 # Request schema (all fields required from user)
 class Features(BaseModel):
