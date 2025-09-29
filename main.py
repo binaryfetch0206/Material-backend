@@ -64,7 +64,9 @@ def predict_energy(data: Features):
     formula = Composition(element_ratio_dict).reduced_formula
 
     # Stability assessment
-    if predicted_energy <= 0.05:
+    if predicted_energy <= 0.1:
+        stability = "✅ Stable (Thermodynamic Ground State)"
+    elif predicted_energy <= 0.05:
         stability = "🟢 Likely Stable (within thermal noise)"
     elif predicted_energy <= 0.1:
         stability = "⚠️ Metastable (can be synthesized)"
