@@ -227,86 +227,21 @@ def predict_energy(data: Features):
         "stability": stability
     }
 # ===================================================
-# 4️⃣ Physics + Scientific Estimation Functions (for /materials/auto_features)
+# 🧩 Full Cascaded Pipeline Integration Route
 # ===================================================
-def estimate_density(user_input):
-    mat_type = user_input.get("Material Type", "Metal").lower()
-    wt_type = user_input.get("Weight Type", "Medium").lower()
-    base_density = {"metal": 7.8, "ceramic": 3.5, "polymer": 1.2, "semiconductor": 5.0}.get(mat_type, 5.0)
-    weight_adj = {"light": 0.7, "medium": 1.0, "heavy": 1.4}.get(wt_type, 1.0)
-    return np.round(np.clip(base_density * weight_adj, 0.5, 15), 3)
+from typing import Any
 
-
-def estimate_volume(density, molar_mass=60):
-    return np.round(np.clip(molar_mass / density * 2, 5, 200), 3)
-
-
-def estimate_band_gap(user_input):
-    mat_type = user_input.get("Material Type", "Metal").lower()
-    if mat_type == "metal":
-        return 0.0
-    if mat_type == "semiconductor":
-        semi_type = user_input.get("Semiconductor Type", "n-type").lower()
-        return 1.1 if semi_type == "n-type" else 1.8
-    if mat_type == "insulator":
-        return 4.5
-    return 2.0
-
-
-def estimate_efermi(band_gap, is_metal):
-    return np.round(np.random.uniform(-1, 1), 3) if is_metal else np.round(band_gap / 2 * np.random.choice([-1, 1]), 3)
-
-
-def estimate_magnetism(user_input):
-    mag_type = user_input.get("Magnetic Type", "").lower()
-    mag_strength = user_input.get("Magnetization Strength", "Medium").lower()
-    is_mag = 1 if mag_type in ["ferromagnetic", "ferrimagnetic"] else 0
-    ordering = "FM" if is_mag else "NM"
-    base_mag = {"low": 0.3, "medium": 1.5, "high": 3.0}.get(mag_strength, 1.0)
-    total_mag = base_mag if is_mag else 0.0
-    return is_mag, ordering, total_mag
-
-
-def scientific_estimates(user_input):
-    density = estimate_density(user_input)
-    volume = estimate_volume(density)
-    band_gap = estimate_band_gap(user_input)
-    is_metal = 1 if band_gap < 0.3 else 0
-    efermi = estimate_efermi(band_gap, is_metal)
-    is_magnetic, ordering, total_mag = estimate_magnetism(user_input)
-    return {
-        "density": density, "volume": volume, "band_gap": band_gap,
-        "efermi": efermi, "is_metal": is_metal,
-        "is_magnetic": is_magnetic, "ordering": ordering, "total_magnetization": total_mag,
-        "density_atomic": 4.75, "num_magnetic_sites": 3.6, "num_unique_magnetic_sites": 3.0,
-        "types_of_magnetic_species": "['Fe']",
-        "total_magnetization_normalized_vol": 0.86,
-        "total_magnetization_normalized_formula_units": 0.38,
-        "energy_per_atom": 4.34,
-        "energy_above_hull": 3.04,
-        "formation_energy_per_atom": 2.83
-    }
-
-
-# ===================================================
-# 5️⃣ Route 2: Auto-generate scientific + ML hybrid properties
-# ===================================================
-@app.post("/materials/auto_features")
-def auto_features(user_input: dict):
+@app.post("/materials/full_pipeline")
+def full_pipeline(user_input: Dict[str, Any]):
     """
-    Accepts partial material information from frontend like:
-    {
-      "Material Type": "Semiconductor",
-      "Weight Type": "Medium",
-      "Magnetic Type": "Diamagnetic",
-      "Magnetization Strength": "Low"
-    }
+    Combines: Scientific Estimation + ML Cascade
     """
     try:
-        results = scientific_estimates(user_input)
+        from run_cascaded_module import run_cascaded_models  # ✅ Import your second file if separate
+        results_df = run_cascaded_models(user_input)
         return {
             "success": True,
-            "auto_generated_features": results
+            "combined_results": results_df.to_dict(orient="records")[0]
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
